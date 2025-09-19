@@ -199,15 +199,7 @@ export default function Home() {
           >
             View Restaurants
           </Link>
-          <button className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors">
-            Add New Order
-          </button>
-          <button className="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
-            View Analytics
-          </button>
-          <button className="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors">
-            Manage Staff
-          </button>
+          
         </div>
       </div>
     </div>
