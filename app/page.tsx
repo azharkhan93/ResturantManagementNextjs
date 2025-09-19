@@ -1,103 +1,215 @@
-import Image from "next/image";
+"use client";
+
+import { usePathname } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { Restaurant, Order } from "@/types";
+import { restaurantApi } from "@/utils";
+import { StatsGrid } from "@/components";
+import { STATS_CONFIG, StatItem } from "@/constants";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const pathname = usePathname();
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [topRestaurantsData, setTopRestaurantsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        console.log("Loading restaurants and analytics for dashboard...");
+        const [restaurantsData, topRestaurantsData, analyticsOverviewData] =
+          await Promise.all([
+            restaurantApi.getRestaurants({}),
+            restaurantApi.getTopRestaurants(),
+            restaurantApi.getAnalyticsOverview(),
+          ]);
+        console.log("Dashboard restaurants data:", restaurantsData);
+        console.log("Top restaurants data:", topRestaurantsData);
+        console.log("Analytics overview data:", analyticsOverviewData);
+        setRestaurants(restaurantsData);
+        setTopRestaurantsData(topRestaurantsData);
+      } catch (err) {
+        console.error("Error loading data:", err);
+        setError("Failed to load data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const topRestaurants = useMemo(() => {
+    if (!topRestaurantsData?.data) return [];
+
+    return topRestaurantsData.data.map((item: any) => ({
+      ...item.restaurant,
+      totalOrders: item.order_count,
+      revenue: parseFloat(item.total_revenue),
+    }));
+  }, [topRestaurantsData]);
+
+  const generateStatsData = (topRestaurants: any[]): StatItem[] => {
+    const totalRevenue = topRestaurants.reduce(
+      (sum: number, r: any) => sum + (r.revenue || 0),
+      0
+    );
+    const totalOrders = topRestaurants.reduce(
+      (sum: number, r: any) => sum + (r.totalOrders || 0),
+      0
+    );
+
+    return [
+      {
+        ...STATS_CONFIG.DYNAMIC_STATS.TOTAL_REVENUE,
+        value: `$${totalRevenue.toLocaleString()}`,
+      },
+      {
+        ...STATS_CONFIG.DYNAMIC_STATS.TOTAL_ORDERS,
+        value: totalOrders,
+      },
+      ...STATS_CONFIG.STATIC_STATS,
+    ];
+  };
+
+  const statsData = useMemo(
+    () => generateStatsData(topRestaurants),
+    [topRestaurants]
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="border-b border-gray-200 pb-4">
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">
+          Welcome to your restaurant management dashboard
+        </p>
+      </div>
+
+      <StatsGrid stats={statsData} />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Top 3 Restaurants by Revenue
+          </h3>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600">Loading...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-600">{error}</p>
+            </div>
+          ) : topRestaurants.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No restaurants found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {topRestaurants.map((restaurant: any, index: number) => {
+                const medals = ["🥇", "🥈", "🥉"];
+                const bgColors = ["bg-yellow-50", "bg-gray-50", "bg-orange-50"];
+
+                return (
+                  <Link
+                    key={restaurant.id}
+                    href={`/restaurants/${restaurant.id}`}
+                    className="block"
+                  >
+                    <div
+                      className={`flex items-center justify-between p-3 ${bgColors[index]} rounded-lg hover:shadow-md transition-shadow cursor-pointer`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{medals[index]}</span>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {restaurant.name}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {restaurant.location} • {restaurant.cuisine}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">
+                          ${restaurant.revenue?.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {restaurant.totalOrders?.toLocaleString()} orders
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Recent Orders
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Order #1234</p>
+                <p className="text-xs text-gray-500">Table 5 • 2:30 PM</p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                Completed
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Order #1235</p>
+                <p className="text-xs text-gray-500">Table 3 • 2:45 PM</p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                In Progress
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Order #1236</p>
+                <p className="text-xs text-gray-500">Table 8 • 3:00 PM</p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                Pending
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg bg-white p-6 shadow">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Quick Actions
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link
+            href="/restaurants"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors text-center"
+          >
+            View Restaurants
+          </Link>
+          <button className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors">
+            Add New Order
+          </button>
+          <button className="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors">
+            View Analytics
+          </button>
+          <button className="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors">
+            Manage Staff
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
