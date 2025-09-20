@@ -33,9 +33,9 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
 }) => {
   return (
     <>
-      {/* Second Row - Advanced Filters */}
+     
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        {/* Location Filter */}
+        
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Location
@@ -72,7 +72,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           </select>
         </div>
 
-        {/* Amount Range Filter */}
+    
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Revenue Range
@@ -83,14 +83,14 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Amounts</option>
-            <option value="0-10000">$0 - $10,000</option>
-            <option value="10000-30000">$10,000 - $30,000</option>
-            <option value="30000-50000">$30,000 - $50,000</option>
-            <option value="50000+">$50,000+</option>
+            <option value="0-10000">₹0 - ₹10,000</option>
+            <option value="10000-30000">₹10,000 - ₹30,000</option>
+            <option value="30000-50000">₹30,000 - ₹50,000</option>
+            <option value="50000+">₹50,000+</option>
           </select>
         </div>
 
-        {/* Hour Range Filter */}
+        
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Peak Hour Range
@@ -109,7 +109,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </div>
       </div>
 
-      {/* Custom Date Range */}
+     
       {dateRange === "custom" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
