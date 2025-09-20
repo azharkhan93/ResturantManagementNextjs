@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Restaurant } from "@/types";
+import { formatCurrencyWithoutDecimals } from "@/utils/currency";
 
 type RestaurantCardProps = {
   restaurant: Restaurant;
@@ -47,7 +48,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
           <div>
             <p className="text-sm text-gray-500">Revenue</p>
             <p className="text-lg font-semibold text-gray-900">
-              ${(restaurant.revenue || 0).toLocaleString()}
+              {formatCurrencyWithoutDecimals(restaurant.revenue || 0)}
             </p>
           </div>
         </div>

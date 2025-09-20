@@ -1,17 +1,35 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Restaurant, Order } from "@/types";
-import { restaurantApi } from "@/utils";
+import { restaurantApi, formatCurrencyWithoutDecimals } from "@/utils";
 import { StatsGrid } from "@/components";
 import { STATS_CONFIG, StatItem } from "@/constants";
 
+interface TopRestaurantData {
+  data: Array<{
+    restaurant: {
+      id: number;
+      name: string;
+      location: string;
+      cuisine: string;
+    };
+    order_count: number;
+    total_revenue: string;
+  }>;
+}
+
+interface TopRestaurant {
+  id: number;
+  name: string;
+  location: string;
+  cuisine: string;
+  totalOrders: number;
+  revenue: number;
+}
+
 export default function Home() {
-  const pathname = usePathname();
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [topRestaurantsData, setTopRestaurantsData] = useState<any>(null);
+  const [topRestaurantsData, setTopRestaurantsData] = useState<TopRestaurantData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,16 +39,14 @@ export default function Home() {
       setError(null);
       try {
         console.log("Loading restaurants and analytics for dashboard...");
-        const [restaurantsData, topRestaurantsData, analyticsOverviewData] =
+        const [, topRestaurantsData, analyticsOverviewData] =
           await Promise.all([
             restaurantApi.getRestaurants({}),
             restaurantApi.getTopRestaurants(),
             restaurantApi.getAnalyticsOverview(),
           ]);
-        console.log("Dashboard restaurants data:", restaurantsData);
         console.log("Top restaurants data:", topRestaurantsData);
         console.log("Analytics overview data:", analyticsOverviewData);
-        setRestaurants(restaurantsData);
         setTopRestaurantsData(topRestaurantsData);
       } catch (err) {
         console.error("Error loading data:", err);
@@ -43,30 +59,30 @@ export default function Home() {
     loadData();
   }, []);
 
-  const topRestaurants = useMemo(() => {
+  const topRestaurants = useMemo((): TopRestaurant[] => {
     if (!topRestaurantsData?.data) return [];
 
-    return topRestaurantsData.data.map((item: any) => ({
+    return topRestaurantsData.data.map((item) => ({
       ...item.restaurant,
       totalOrders: item.order_count,
       revenue: parseFloat(item.total_revenue),
     }));
   }, [topRestaurantsData]);
 
-  const generateStatsData = (topRestaurants: any[]): StatItem[] => {
+  const generateStatsData = (topRestaurants: TopRestaurant[]): StatItem[] => {
     const totalRevenue = topRestaurants.reduce(
-      (sum: number, r: any) => sum + (r.revenue || 0),
+      (sum: number, r: TopRestaurant) => sum + (r.revenue || 0),
       0
     );
     const totalOrders = topRestaurants.reduce(
-      (sum: number, r: any) => sum + (r.totalOrders || 0),
+      (sum: number, r: TopRestaurant) => sum + (r.totalOrders || 0),
       0
     );
 
     return [
       {
         ...STATS_CONFIG.DYNAMIC_STATS.TOTAL_REVENUE,
-        value: `$${totalRevenue.toLocaleString()}`,
+        value: formatCurrencyWithoutDecimals(totalRevenue),
       },
       {
         ...STATS_CONFIG.DYNAMIC_STATS.TOTAL_ORDERS,
@@ -112,7 +128,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-4">
-              {topRestaurants.map((restaurant: any, index: number) => {
+              {topRestaurants.map((restaurant: TopRestaurant, index: number) => {
                 const medals = ["🥇", "🥈", "🥉"];
                 const bgColors = ["bg-yellow-50", "bg-gray-50", "bg-orange-50"];
 
@@ -138,7 +154,7 @@ export default function Home() {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-gray-900">
-                          ${restaurant.revenue?.toLocaleString()}
+                          {formatCurrencyWithoutDecimals(restaurant.revenue || 0)}
                         </p>
                         <p className="text-sm text-gray-600">
                           {restaurant.totalOrders?.toLocaleString()} orders

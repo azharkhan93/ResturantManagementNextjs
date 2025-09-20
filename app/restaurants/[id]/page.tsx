@@ -3,15 +3,14 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Restaurant, OrderWithRestaurant, OrderAnalytics } from "@/types";
-import { restaurantApi } from "@/utils";
+import { Restaurant, OrderAnalytics } from "@/types";
+import { restaurantApi, formatCurrencyWithoutDecimals, formatCurrencyWithDecimals } from "@/utils";
 
 export default function RestaurantDetailPage() {
   const params = useParams();
   const restaurantId = params.id as string;
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [order, setOrder] = useState<OrderWithRestaurant | null>(null);
   const [analytics, setAnalytics] = useState<OrderAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +108,7 @@ export default function RestaurantDetailPage() {
           Restaurant not found
         </h3>
         <p className="text-gray-600">
-          The restaurant you're looking for doesn't exist.
+          The restaurant you&apos;re looking for doesn&apos;t exist.
         </p>
       </div>
     );
@@ -155,13 +154,13 @@ export default function RestaurantDetailPage() {
             <div className="text-center">
               <p className="text-sm text-gray-500">Total Revenue</p>
               <p className="text-3xl font-bold text-green-600">
-                ${analytics.data.summary.total_revenue.toLocaleString()}
+                {formatCurrencyWithoutDecimals(analytics.data.summary.total_revenue)}
               </p>
             </div>
             <div className="text-center">
               <p className="text-sm text-gray-500">Average Order Value</p>
               <p className="text-3xl font-bold text-purple-600">
-                ${analytics.data.summary.average_order_value.toFixed(2)}
+                {formatCurrencyWithDecimals(analytics.data.summary.average_order_value)}
               </p>
             </div>
           </div>
@@ -204,10 +203,10 @@ export default function RestaurantDetailPage() {
                             {item.order_count}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${item.revenue.toLocaleString()}
+                            {formatCurrencyWithoutDecimals(item.revenue)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${item.average_order_value.toFixed(2)}
+                            {formatCurrencyWithDecimals(item.average_order_value)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {item.peak_hour}:00 ({item.peak_hour_orders} orders)
@@ -238,7 +237,7 @@ export default function RestaurantDetailPage() {
                         {hour.order_count} orders
                       </p>
                       <p className="text-sm text-gray-600">
-                        ${parseFloat(hour.revenue).toLocaleString()}
+                        {formatCurrencyWithoutDecimals(parseFloat(hour.revenue))}
                       </p>
                     </div>
                   ))}
